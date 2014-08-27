@@ -6,6 +6,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
@@ -24,7 +25,6 @@ import android.view.WindowManager;
 import android.view.animation.AlphaAnimation;
 import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ImageButton;
 
 public class FullscreenActivity extends Activity {
 	private Camera mCamera;
@@ -80,7 +80,8 @@ public class FullscreenActivity extends Activity {
 					// initialize video camera
 					if (prepareVideoRecorder()) {
 						v.setVisibility(View.GONE);
-						
+						//hello
+						 
 								
 						v.setVisibility(View.VISIBLE);
 						isRecording = true;
