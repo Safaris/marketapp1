@@ -1,160 +1,330 @@
 package com.natedog.spermcount;
 
-import com.natedog.spermcount.util.SystemUiHider;
+import java.io.File;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
-import android.annotation.TargetApi;
+import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.os.Build;
+import android.content.Intent;
+import android.hardware.Camera;
+import android.media.CamcorderProfile;
+import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
+import android.os.Environment;
+import android.util.Log;
 import android.view.MotionEvent;
+import android.view.Surface;
 import android.view.View;
+import android.view.View.OnTouchListener;
+import android.view.WindowManager;
+import android.view.animation.AlphaAnimation;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 
-
-/**
- * An example full-screen activity that shows and hides the system UI (i.e.
- * status bar and navigation/system bar) with user interaction.
- *
- * @see SystemUiHider
- */
 public class FullscreenActivity extends Activity {
-    /**
-     * Whether or not the system UI should be auto-hidden after
-     * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
-     */
-    private static final boolean AUTO_HIDE = true;
+	private Camera mCamera;
+	private CameraView mPreview;
+	private MediaRecorder mMediaRecorder;
+	private FrameLayout preview;
+	private Button buttonRecordStop;
+	private boolean isRecording = false;
+	private String fileName;
 
-    /**
-     * If {@link #AUTO_HIDE} is set, the number of milliseconds to wait after
-     * user interaction before hiding the system UI.
-     */
-    private static final int AUTO_HIDE_DELAY_MILLIS = 3000;
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		Log.d("CameraPage-onCreate", "Called onCreate()");
 
-    /**
-     * If set, will toggle the system UI visibility upon interaction. Otherwise,
-     * will show the system UI visibility upon interaction.
-     */
-    private static final boolean TOGGLE_ON_CLICK = true;
+		setContentView(R.layout.activity_fullscreen);
 
-    /**
-     * The flags to pass to {@link SystemUiHider#getInstance}.
-     */
-    private static final int HIDER_FLAGS = SystemUiHider.FLAG_HIDE_NAVIGATION;
+		buttonRecordStop = (Button) findViewById(R.id.camera_surface_buttonRecordStop);
 
-    /**
-     * The instance of the {@link SystemUiHider} for this activity.
-     */
-    private SystemUiHider mSystemUiHider;
+		buttonRecordStop.setOnTouchListener(new OnTouchListener() {
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_DOWN
+						|| event.getAction() == MotionEvent.ACTION_MOVE) {
+					AlphaAnimation alpha = new AlphaAnimation(1.0F, 0.3F);
+					alpha.setDuration(100);
+					alpha.setFillAfter(true); // Tell it to persist after the
+												// animation ends
+					buttonRecordStop.startAnimation(alpha);
+				} else if (event.getAction() == MotionEvent.ACTION_UP
+						|| event.getAction() == MotionEvent.ACTION_CANCEL) {
+					AlphaAnimation alpha = new AlphaAnimation(0.3F, 1.0F);
+					alpha.setDuration(100);
+					alpha.setFillAfter(true); // Tell it to persist after the
+												// animation ends
+					buttonRecordStop.startAnimation(alpha);
+				}
+				return false;
+			}
+		});
 
-        setContentView(R.layout.activity_fullscreen);
+		buttonRecordStop.setOnClickListener(new View.OnClickListener() {
 
-        final View controlsView = findViewById(R.id.fullscreen_content_controls);
-        final View contentView = findViewById(R.id.fullscreen_content);
+			@Override
+			public void onClick(View v) {
+				if (!isRecording) {
+					Log.d("CameraPage-buttonRecordStop-onClick", "Start Record");
 
-        // Set up an instance of SystemUiHider to control the system UI for
-        // this activity.
-        mSystemUiHider = SystemUiHider.getInstance(this, contentView, HIDER_FLAGS);
-        mSystemUiHider.setup();
-        mSystemUiHider
-                .setOnVisibilityChangeListener(new SystemUiHider.OnVisibilityChangeListener() {
-                    // Cached values.
-                    int mControlsHeight;
-                    int mShortAnimTime;
+					getWindow().addFlags(
+							WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-                    @Override
-                    @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
-                    public void onVisibilityChange(boolean visible) {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
-                            // If the ViewPropertyAnimator API is available
-                            // (Honeycomb MR2 and later), use it to animate the
-                            // in-layout UI controls at the bottom of the
-                            // screen.
-                            if (mControlsHeight == 0) {
-                                mControlsHeight = controlsView.getHeight();
-                            }
-                            if (mShortAnimTime == 0) {
-                                mShortAnimTime = getResources().getInteger(
-                                        android.R.integer.config_shortAnimTime);
-                            }
-                            controlsView.animate()
-                                    .translationY(visible ? 0 : mControlsHeight)
-                                    .setDuration(mShortAnimTime);
-                        } else {
-                            // If the ViewPropertyAnimator APIs aren't
-                            // available, simply show or hide the in-layout UI
-                            // controls.
-                            controlsView.setVisibility(visible ? View.VISIBLE : View.GONE);
-                        }
+					// initialize video camera
+					if (prepareVideoRecorder()) {
+						v.setVisibility(View.GONE);
+						
+								
+						v.setVisibility(View.VISIBLE);
+						isRecording = true;
 
-                        if (visible && AUTO_HIDE) {
-                            // Schedule a hide().
-                            delayedHide(AUTO_HIDE_DELAY_MILLIS);
-                        }
-                    }
-                });
+						// Camera is available and unlocked, MediaRecorder is
+						// prepared,
+						// now you can start recording
+						mMediaRecorder.start();
 
-        // Set up the user interaction to manually show or hide the system UI.
-        contentView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (TOGGLE_ON_CLICK) {
-                    mSystemUiHider.toggle();
-                } else {
-                    mSystemUiHider.show();
-                }
-            }
-        });
+					} else {
+						// prepare didn't work, release the camera
+						releaseMediaRecorder();
+						// inform user
+					}
 
-        // Upon interacting with UI controls, delay any scheduled hide()
-        // operations to prevent the jarring behavior of controls going away
-        // while interacting with the UI.
-        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
-    }
+				} else {
+					Log.d("CameraPage-buttonRecordStop-onClick", "Stop Record");
 
-    @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
-        super.onPostCreate(savedInstanceState);
+					getWindow().clearFlags(
+							WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // Trigger the initial hide() shortly after the activity has been
-        // created, to briefly hint to the user that UI controls
-        // are available.
-        delayedHide(100);
-    }
+					v.setVisibility(View.GONE);
+					
+					v.setVisibility(View.VISIBLE);
+					isRecording = false;
 
+					stopRecording();
 
-    /**
-     * Touch listener to use for in-layout UI controls to delay hiding the
-     * system UI. This is to prevent the jarring behavior of controls going away
-     * while interacting with activity UI.
-     */
-    View.OnTouchListener mDelayHideTouchListener = new View.OnTouchListener() {
-        @Override
-        public boolean onTouch(View view, MotionEvent motionEvent) {
-            if (AUTO_HIDE) {
-                delayedHide(AUTO_HIDE_DELAY_MILLIS);
-            }
-            return false;
-        }
-    };
+					sendBroadcast(new Intent(
+							Intent.ACTION_MEDIA_MOUNTED,
+							Uri.parse("file://"
+									+ Environment.getExternalStorageDirectory())));
 
-    Handler mHideHandler = new Handler();
-    Runnable mHideRunnable = new Runnable() {
-        @Override
-        public void run() {
-            mSystemUiHider.hide();
-        }
-    };
+				}
 
-    /**
-     * Schedules a call to hide() in [delay] milliseconds, canceling any
-     * previously scheduled calls.
-     */
-    private void delayedHide(int delayMillis) {
-        mHideHandler.removeCallbacks(mHideRunnable);
-        mHideHandler.postDelayed(mHideRunnable, delayMillis);
-    }
-}
+			}// end onClick
+		});
+
+		mCamera = getCameraInstance();
+		preview = (FrameLayout) findViewById(R.id.camera_preview);
+
+	}// end onCreate
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		Log.d("CameraPage-onResume",
+				"Chiamato onResume ripristino le risorse se necessario");
+
+		if (mCamera == null) {
+			// Create an instance of Camera
+			mCamera = getCameraInstance();
+
+		}
+
+		if (mPreview == null) {
+			mPreview = new CameraView(getApplicationContext(), mCamera, this);
+			preview.addView(mPreview);
+		}
+
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		Log.d("CameraPage-onPause", "Vado in onPause e rilascio le risorse");
+
+		releaseMediaRecorder(); // if you are using MediaRecorder, release it
+								// first
+		releaseCamera(); // release the camera immediately on pause event
+
+		preview.removeView(mPreview);
+		mPreview = null;
+	}
+
+	private void stopRecording() {
+		mMediaRecorder.stop();
+		releaseMediaRecorder();
+
+		// Restarto la preview della camera
+		mCamera.startPreview();
+		// mCamera.lock();
+	}
+
+	private boolean prepareVideoRecorder() {
+
+		// mCamera = getCameraInstance();
+		mMediaRecorder = new MediaRecorder();
+
+		// Stop preview because I have to start the preview for the video
+		mCamera.stopPreview();
+
+		// Step 1: Unlock and set camera to MediaRecorder
+		mCamera.unlock();
+		mMediaRecorder.setCamera(mCamera);
+
+		// Step 2: Set sources
+		mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.CAMCORDER);
+		mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
+
+		// Step 3: Set a CamcorderProfile (requires API Level 8 or higher)
+		mMediaRecorder.setProfile(CamcorderProfile
+				.get(CamcorderProfile.QUALITY_HIGH));
+
+		// Step 4: Set output file
+		setOutputFile();
+		mMediaRecorder.setOutputFile(getOutputFile());
+
+		// Step 5: Set the preview output
+		mMediaRecorder.setPreviewDisplay(mPreview.getHolder().getSurface());
+
+		mMediaRecorder.setOrientationHint(FullscreenActivity
+				.getCameraDisplayOrientation(this,
+						Camera.CameraInfo.CAMERA_FACING_BACK, mCamera));
+
+		// Step 6: Prepare configured MediaRecorder
+		try {
+			mMediaRecorder.prepare();
+		} catch (IllegalStateException e) {
+			Log.d("CameraPage-prepareVideoRecorder",
+					"IllegalStateException preparing MediaRecorder: "
+							+ e.getMessage());
+			releaseMediaRecorder();
+			return false;
+		} catch (IOException e) {
+			Log.d("CameraPage-prepareVideoRecorder",
+					"IOException preparing MediaRecorder: " + e.getMessage());
+			releaseMediaRecorder();
+			return false;
+		}
+		return true;
+	}
+
+	private void releaseMediaRecorder() {
+		if (mMediaRecorder != null) {
+			mMediaRecorder.reset(); // clear recorder configuration
+			mMediaRecorder.release(); // release the recorder object
+			mMediaRecorder = null;
+			mCamera.lock(); // lock camera for later use
+		}
+	}
+
+	private void releaseCamera() {
+		if (mCamera != null) {
+			mCamera.release(); // release the camera for other applications
+			mCamera = null;
+		}
+
+		if (mPreview != null)
+			mPreview.getHolder().removeCallback(mPreview);
+	}
+
+	/** A safe way to get an instance of the Camera object. */
+	private Camera getCameraInstance() {
+		Camera c = null;
+		try {
+			Log.d("CameraPage-getCameraInstance", "Prendo istanza camera");
+			c = Camera.open(); // attempt to get a Camera instance
+		} catch (Exception e) {
+			// Camera is not available (in use or does not exist)
+			Log.d("CameraPage-getCameraInstance",
+					"Eccezione durante retrieve istanza camera " + e);
+		}
+		return c; // returns null if camera is unavailable
+	}
+
+	@SuppressLint("SimpleDateFormat")
+	private void setOutputFile() {
+		String folderPath = Environment.getExternalStorageDirectory().getPath();
+		File vims = new File(folderPath + "/ViMS");
+
+		if (!vims.exists())
+			vims.mkdir();
+
+		DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd---HH-mm-ss");
+		Date date = new Date();
+		String timestamp = "/" + dateFormat.format(date) + ".mp4";
+
+		Log.d("CameraPage-getOutputFile", Environment
+				.getExternalStorageDirectory().getPath());
+
+		fileName = vims.getPath() + timestamp;
+
+	}
+
+	private String getOutputFile() {
+		return fileName;
+	}
+
+	public static void setCameraDisplayOrientation(Activity activity,
+			int cameraId, android.hardware.Camera camera) {
+
+		int result = FullscreenActivity.getCameraDisplayOrientation(activity, cameraId,
+				camera);
+
+		if (android.os.Build.VERSION.SDK_INT <= 14) {
+			camera.stopPreview();
+			camera.setDisplayOrientation(result);
+			camera.startPreview();
+		} else {
+			camera.setDisplayOrientation(result);
+		}
+
+	}// end setCameraDisplayOrientation
+
+	public static int getCameraDisplayOrientation(Activity activity,
+			int cameraId, android.hardware.Camera camera) {
+		android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+		android.hardware.Camera.getCameraInfo(cameraId, info);
+		int rotation = activity.getWindowManager().getDefaultDisplay()
+				.getRotation();
+		int degrees = 0;
+		switch (rotation) {
+		case Surface.ROTATION_0:
+			degrees = 0;
+			break;
+		case Surface.ROTATION_90:
+			degrees = 90;
+			break;
+		case Surface.ROTATION_180:
+			degrees = 180;
+			break;
+		case Surface.ROTATION_270:
+			degrees = 270;
+			break;
+		}
+
+		int result;
+		if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+			result = (info.orientation + degrees) % 360;
+			result = (360 - result) % 360; // compensate the mirror
+		} else { // back-facing
+			result = (info.orientation - degrees + 360) % 360;
+		}
+
+		return result;
+	}
+
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+
+		Log.d("CameraPage-onDestroy", "Called onDestroy");
+
+	}
+
+}// end CameraPage
