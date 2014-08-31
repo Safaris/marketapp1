@@ -2,7 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
    android:layout_width="fill_parent"
    android:layout_height="fill_parent"
-   android:orientation="horizontal" >
+   android:orientation="horizontal" 
+   android:baselineAligned="false">
 
     <RelativeLayout
         android:layout_width="wrap_content"
@@ -24,7 +25,9 @@
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:onClick="snapIt"
-            android:text="Capture" />
+            android:background="#fff"
+            android:textColor="#000"
+            android:text="Caption It" />
 
     </RelativeLayout>
 

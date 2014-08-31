@@ -1,4 +1,4 @@
-package com.natedog.spermcount;
+package com.worldbit.cappit;
 
 import java.io.IOException;
 
@@ -16,6 +16,8 @@ public class ShowCamera extends SurfaceView implements SurfaceHolder.Callback {
 	      super(context);
 	      theCamera = camera;
 	      theCamera.setDisplayOrientation(90);//rotate the camera 90 degrees
+	      
+	
 	      
 	      holdMe = getHolder();
 	      holdMe.setKeepScreenOn(true);//disable the screen from sleeping
