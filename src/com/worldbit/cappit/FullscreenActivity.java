@@ -82,27 +82,19 @@ public class FullscreenActivity extends Activity {
 
 				sqPaint.setColor(Color.BLACK);
 				sqPaint.setAlpha(100);
-				// sqPaint.set
-				// Rect myRect = new Rect();
-				// myRect.set(x0,y0,x1,y1);
-				// int chars = tPaint.breakText(yourText, true, maxW, null);
+
 
 				cs.drawBitmap(bitmap, 0f, 0f, null);
 				//float height = tPaint.measureText("yY");
 				float width = tPaint.measureText(yourText);
 				float x_coord = (bitmap.getWidth() - width) / 2;
-				// float y_coord = (bitmap.getHeight() / 3);
-				// DisplayMetrics metrics=new DisplayMetrics();
-				// getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-				// maxY = metrics.heightPixels/metrics.xdpi;
 				float x = 0;
 				float y = (maxY - (maxY * .25f));
 				cs.drawRect(x, y - tPaint.getTextSize() - 5f, maxW, y + 12f,
 						sqPaint);
 				cs.drawText(yourText, x_coord, (maxY - (maxY * .25f)), tPaint);
 
-				// cs.drawRect(30f, 30f, 30f,30f, sqPaint);
 
 				ByteArrayOutputStream stream = new ByteArrayOutputStream();
 				dest.compress(Bitmap.CompressFormat.JPEG, 100, stream);
@@ -117,36 +109,7 @@ public class FullscreenActivity extends Activity {
 				startActivity(intent);
 			}
 
-			/*
-			 * BitmapFactory.Options options = new BitmapFactory.Options();
-			 * 
-			 * // downsizing image as it throws OutOfMemory Exception for larger
-			 * // images options.inSampleSize = 8;
-			 * 
-			 * // File pictureFile = getOutputMediaFile(); if (bitmap == null) {
-			 * Toast.makeText(getApplicationContext(), "not taken",
-			 * Toast.LENGTH_SHORT).show(); // return; } else { // what to do
-			 * when the user captures a picture
-			 * Toast.makeText(getApplicationContext(), "taken",
-			 * Toast.LENGTH_SHORT).show(); saveImageToExternalStorage(bitmap);
-			 * // bitmap.recycle(); // bitmap = null;
-			 */
-			// 15f is //
-			// to // put
-			// // space
-			// //
-			// between
-			// // top //
-			// / edge // and // the // text, // if // you // want // to //
-			// change // it, // you // can
 
-			// Toast.makeText(getApplicationContext(), path, Toast.LENGTH_SHORT)
-			// .show(); // dest is Bitmap, if you want to preview the final
-			// image, // you can display it on screen also
-			// before saving
-
-			// }
-			// cameraObject.release();
 		}
 	};
 
